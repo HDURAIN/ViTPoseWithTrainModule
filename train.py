@@ -30,15 +30,20 @@ CUR_PATH = osp.dirname(__file__)
 @click.command()
 @click.option('--config-path', type=click.Path(exists=True), default='config.yaml', required=True, help='train config file path')
 @click.option('--model-name', type=str, default='b', required=True, help='[b: ViT-B, l: ViT-L, h: ViT-H]')
+
+# config_path and model_name are entered at the terminal when running train.py
 def main(config_path, model_name):
-        
+    """
+    config_path : The path of config.yaml
+    model_name : The name of model
+    """
     cfg = {'b':b_cfg,
            'l':l_cfg,
            'h':h_cfg}.get(model_name.lower())
-    # Load config.yaml
+    
+    # Open and Load config.yaml then check cfg_yaml
     with open(config_path, 'r') as f:
         cfg_yaml = yaml.load(f, Loader=yaml.SafeLoader)
-        
     for k, v in cfg_yaml.items():
         if hasattr(cfg, k):
             raise ValueError(f"Already exsist {k} in config")
@@ -52,7 +57,6 @@ def main(config_path, model_name):
     # Set work directory (session-level)
     if not hasattr(cfg, 'work_dir'):
         cfg.__setattr__('work_dir', f"{CUR_PATH}/runs/train")
-        
     if not osp.exists(cfg.work_dir):
         os.makedirs(cfg.work_dir)
     session_list = sorted(glob(f"{cfg.work_dir}/*"))
@@ -63,10 +67,9 @@ def main(config_path, model_name):
     session_dir = osp.join(cfg.work_dir, str(session).zfill(3))
     os.makedirs(session_dir)
     cfg.__setattr__('work_dir', session_dir)
-        
-
+    
+    # apply the linear scaling rule (https://arxiv.org/abs/1706.02677)
     if cfg.autoscale_lr:
-        # apply the linear scaling rule (https://arxiv.org/abs/1706.02677)
         cfg.optimizer['lr'] = cfg.optimizer['lr'] * len(cfg.gpu_ids) / 8
 
     # init distributed env first, since logger depends on the dist info.
@@ -104,6 +107,7 @@ def main(config_path, model_name):
     set_random_seed(seed, deterministic=cfg.deterministic)
     meta['seed'] = seed
 
+    
     # Set model
     model = ViTPose(cfg.model)
     if cfg.resume_from:
@@ -112,7 +116,7 @@ def main(config_path, model_name):
     # Set dataset
     datasets_train = COCODataset(
         root_path=cfg.data_root, 
-        data_version="train_custom",
+        data_version="train2017",
         is_train=True, 
         use_gt_bboxes=True,
         image_width=192, 
@@ -130,7 +134,7 @@ def main(config_path, model_name):
     
     datasets_valid = COCODataset(
         root_path=cfg.data_root, 
-        data_version="valid_custom",
+        data_version="val2017",
         is_train=False, 
         use_gt_bboxes=True,
         image_width=192, 
