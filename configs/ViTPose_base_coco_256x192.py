@@ -28,7 +28,7 @@ lr_config = dict(
     warmup_ratio=0.001,
     step=[170, 200])
 
-total_epochs = 210
+total_epochs = 1
 target_type = 'GaussianHeatmap'
 channel_cfg = dict(
     num_output_channels=17,

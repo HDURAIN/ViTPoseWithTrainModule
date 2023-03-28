@@ -5,7 +5,7 @@ deterministic: True # whether not to evaluate the checkpoint during training
 cudnn_benchmark: True # Use cudnn 
 resume_from: False
 gpu_ids: [0]
-launcher: 'none' # When distributed training ['none', 'pytorch', 'slurm', 'mpi']
+launcher: 'pytorch' # When distributed training ['none', 'pytorch', 'slurm', 'mpi']
 use_amp: True
 validate: True
 
