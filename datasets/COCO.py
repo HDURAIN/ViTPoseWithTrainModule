@@ -28,7 +28,7 @@ class COCODataset(Dataset):
 
     def __init__(self, root_path="/hy-tmp", data_version="train2017", 
                  is_train=True, use_gt_bboxes=True, bbox_path="",
-                 image_width=288, image_height=384,
+                 image_width=288, image_height=384,  
                  scale=True, scale_factor=0.35, flip_prob=0.5, rotate_prob=0.5, rotation_factor=45., half_body_prob=0.3,
                  use_different_joints_weight=False, heatmap_sigma=3, soft_nms=False):
         """
@@ -54,7 +54,7 @@ class COCODataset(Dataset):
             image_width (int): image width.
                 Default: 288
             image_height (int): image height.
-                Default: ``384``
+                Default: 384
             color_rgb (bool): rgb or bgr color mode. If True, rgb color mode is used.
                 Default: True
             scale (bool): scale mode.
@@ -248,7 +248,10 @@ class COCODataset(Dataset):
 
         # Load image
         try:
-            image = np.array(Image.open(joints_data['imgPath']))
+            image = np.asarray(Image.open(joints_data['imgPath']))
+            if len(image.shape) == 2 :
+                image = np.expand_dims(image, axis = 2)
+                image = np.broadcast_to(image, (image.shape[0],image.shape[1],3))
         except:
             raise ValueError(f"Fail to read {joints_data['imgPath']}")
 
