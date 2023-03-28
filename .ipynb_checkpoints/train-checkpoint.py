@@ -107,6 +107,7 @@ def main(config_path, model_name):
     set_random_seed(seed, deterministic=cfg.deterministic)
     meta['seed'] = seed
 
+    
     # Set model
     model = ViTPose(cfg.model)
     if cfg.resume_from:
@@ -149,6 +150,7 @@ def main(config_path, model_name):
         soft_nms=False
         )
 
+    # Run the train function that is import from utils/train_valid_fn with the previously set parameters
     train_model(
         model=model,
         datasets_train=datasets_train,
@@ -160,6 +162,7 @@ def main(config_path, model_name):
         meta=meta
         )
 
+    
 
 if __name__ == '__main__':
     main()

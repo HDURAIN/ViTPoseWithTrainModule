@@ -150,6 +150,7 @@ def main(config_path, model_name):
         soft_nms=False
         )
 
+    # Run the train function that is import from utils/train_valid_fn with the previously set parameters
     train_model(
         model=model,
         datasets_train=datasets_train,
