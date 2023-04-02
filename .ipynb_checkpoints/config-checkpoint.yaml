@@ -11,5 +11,5 @@ validate: True
 
 autoscale_lr: True # automatically scale lr with the number of gpus
 
-dist_params:
-  ...
+dist_params: 
+   ...

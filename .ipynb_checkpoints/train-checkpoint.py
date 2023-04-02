@@ -75,12 +75,14 @@ def main(config_path, model_name):
     # init distributed env first, since logger depends on the dist info.
     if cfg.launcher == 'none':
         distributed = False
+        """
         if len(cfg.gpu_ids) > 1:
             warnings.warn(
                 f"We treat {cfg['gpu_ids']} as gpu-ids, and reset to "
                 f"{cfg['gpu_ids'][0:1]} as gpu-ids to avoid potential error in "
                 "non-distribute training time.")
             cfg.gpu_ids = cfg.gpu_ids[0:1]
+        """
     else:
         distributed = True
         init_dist(cfg.launcher, **cfg.dist_params)
@@ -161,7 +163,9 @@ def main(config_path, model_name):
         timestamp=timestamp,
         meta=meta
         )
-
+    
+    # 运行恒源云自动保存并上传数据的脚本
+    os.system('/root/upload.sh')
     
 
 if __name__ == '__main__':

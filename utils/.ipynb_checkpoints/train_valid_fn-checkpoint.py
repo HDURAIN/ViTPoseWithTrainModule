@@ -21,15 +21,17 @@ from utils.logging import get_root_logger
 
 @torch.no_grad()
 def valid_model(model: nn.Module, dataloaders: DataLoader, criterion: nn.Module, cfg: dict) -> None:
+    USE_CUDA = torch.cuda.is_available()
+    main_device = torch.device("cuda:0" if USE_CUDA else "cpu")
     total_loss = 0
     total_metric = 0
     model.eval()
     for dataloader in dataloaders:
         for batch_idx, batch in enumerate(dataloader):
             images, targets, target_weights, __ = batch
-            images = images.to('cuda')
-            targets = targets.to('cuda')
-            target_weights = target_weights.to('cuda')
+            images = images.to(main_device)
+            targets = targets.to(main_device)
+            target_weights = target_weights.to(main_device)
             
             outputs = model(images)
             loss = criterion(outputs, targets, target_weights)
@@ -56,6 +58,9 @@ def train_model(model: nn.Module, datasets_train: Dataset, datasets_valid: Datas
     dataloaders_train = [DataLoader(ds, batch_size=cfg.data['samples_per_gpu'], shuffle=True, sampler=sampler, num_workers=cfg.data['workers_per_gpu'], pin_memory=False) for ds, sampler in zip(datasets_train, samplers_train)]
     dataloaders_valid = [DataLoader(ds, batch_size=cfg.data['samples_per_gpu'], shuffle=False, sampler=sampler, num_workers=cfg.data['workers_per_gpu'], pin_memory=False) for ds, sampler in zip(datasets_valid, samplers_valid)]
 
+    USE_CUDA = torch.cuda.is_available()
+    main_device = torch.device("cuda:0" if USE_CUDA else "cpu")
+    
     # put model on gpus
     if distributed:
         find_unused_parameters = cfg.get('find_unused_parameters', False)
@@ -69,6 +74,7 @@ def train_model(model: nn.Module, datasets_train: Dataset, datasets_valid: Datas
             find_unused_parameters=find_unused_parameters)
     else:
         model = DataParallel(model, device_ids=cfg.gpu_ids)
+        model.to(main_device)
     
     # Loss function
     criterion = JointsMSELoss(use_target_weight=cfg.model['keypoint_head']['loss_keypoint']['use_target_weight'])
@@ -114,6 +120,10 @@ def train_model(model: nn.Module, datasets_train: Dataset, datasets_valid: Datas
     
     global_step = 0
     for dataloader in dataloaders_train:
+        # Try to save the epoch that has min average loss
+        min_loss = 1
+        min_loss_epoch = "000"
+        min_loss_epoch_path = "/hy-tmp/result"
         for epoch in range(cfg.total_epochs):
             model.train()
             train_pbar = tqdm(dataloader)
@@ -123,9 +133,9 @@ def train_model(model: nn.Module, datasets_train: Dataset, datasets_valid: Datas
                 layerwise_optimizer.zero_grad()
                     
                 images, targets, target_weights, __ = batch
-                images = images.to('cuda')
-                targets = targets.to('cuda')
-                target_weights = target_weights.to('cuda')
+                images = images.to(main_device)
+                targets = targets.to(main_device)
+                target_weights = target_weights.to(main_device)
                 
                 if cfg.use_amp:
                     with autocast():
@@ -153,7 +163,7 @@ def train_model(model: nn.Module, datasets_train: Dataset, datasets_valid: Datas
             avg_loss_train = total_loss/len(dataloader)
             logger.info(f"[Summary-train] Epoch [{str(epoch).zfill(3)}/{str(cfg.total_epochs).zfill(3)}] | Average Loss (train) {avg_loss_train:.4f} --- {time()-tic:.5f} sec. elapsed")
             ckpt_name = f"epoch{str(epoch).zfill(3)}.pth"
-            ckpt_path = osp.join("/hy-tmp/", ckpt_name)
+            ckpt_path = osp.join("/hy-tmp/result", ckpt_name)
             # Save the trained model with learned parameters
             torch.save(model.module.state_dict(), ckpt_path)
 
@@ -162,3 +172,12 @@ def train_model(model: nn.Module, datasets_train: Dataset, datasets_valid: Datas
                 tic2 = time()
                 avg_loss_valid = valid_model(model, dataloaders_valid, criterion, cfg)
                 logger.info(f"[Summary-valid] Epoch [{str(epoch).zfill(3)}/{str(cfg.total_epochs).zfill(3)}] | Average Loss (valid) {avg_loss_valid:.4f} --- {time()-tic2:.5f} sec. elapsed")
+                
+            # Record the min loss epoch
+            if avg_loss_train < min_loss:
+                min_loss = avg_loss_train
+                min_loss_epoch = f"min_{str(epoch).zfill(3)}.pth"
+                
+        # Save the min loss epoch
+        min_path = osp.join(min_loss_epoch_path, min_loss_epoch)
+        torch.save(model.module.state_dict(), min_path)

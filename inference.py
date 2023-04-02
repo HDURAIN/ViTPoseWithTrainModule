@@ -74,8 +74,8 @@ def inference(img_path: Path, img_size: tuple,
     
 
 if __name__ == "__main__":
-    from configs.ViTPose_base_coco_256x192 import model as model_cfg
-    from configs.ViTPose_base_coco_256x192 import data_cfg
+    from configs.ViTPose_huge_coco_256x192 import model as model_cfg
+    from configs.ViTPose_huge_coco_256x192 import data_cfg
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--image-path', nargs='+', type=str, default='examples/sample.jpg', help='image path(s)')
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     
     CUR_DIR = osp.dirname(__file__)
     # CKPT_PATH = f"{CUR_DIR}/vitpose-b-multi-coco.pth"
-    CKPT_PATH = "/hy-tmp/train_result/epoch000.pth"
+    CKPT_PATH = "/hy-tmp/pretrainedModel/vitpose-h.pth"
     
     img_size = data_cfg['image_size']
     if type(args.image_path) != list:

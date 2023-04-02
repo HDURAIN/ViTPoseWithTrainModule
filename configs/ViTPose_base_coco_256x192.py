@@ -1,4 +1,4 @@
-# _base_ = [
+    # _base_ = [
 #     '../../../../_base_/default_runtime.py',
 #     '../../../../_base_/datasets/coco.py'
 # ]
@@ -28,7 +28,7 @@ lr_config = dict(
     warmup_ratio=0.001,
     step=[170, 200])
 
-total_epochs = 1
+total_epochs = 20
 target_type = 'GaussianHeatmap'
 channel_cfg = dict(
     num_output_channels=17,
